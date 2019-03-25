@@ -1,0 +1,204 @@
+# Copyright (C) 2012 Realtek Semiconductor Corp.
+#
+# Makefile for SDK Linux Kernel Modules
+#
+
+include $(APOLLODIR)/Compiler_Flag
+
+SDK_INCLUDE   = $(SDKDIR)/include
+SYS_INCLUDE   = $(SDKDIR)/system/include
+DRV_INCLUDE   = $(SDKDIR)/system/linux
+
+EXTRA_CFLAGS+= $(PON_CFLAGS)
+FLAGS+="-I$(SDK_INCLUDE) -I$(SYS_INCLUDE) -I$(DRV_INCLUDE)"
+ifeq ($(CONFIG_OPENWRT_DIAG),y)
+RTK_LIB +="-L$(APOLLODIR)/object/src/app/lib -lrtk"
+else
+RTK_LIB +="-L$(APOLLODIR)/object/src/app/lib -lrtk -lpthread"
+endif
+
+APPS:= diag_rtk
+
+ifeq ($(CONFIG_GPON_FEATURE),y)
+APPS+= pkt_redirect
+else
+ifeq ($(CONFIG_EPON_FEATURE),y)
+APPS+= pkt_redirect
+else
+ifeq ($(CONFIG_SDK_LUNA_G3),y)
+APPS+= pkt_redirect
+endif
+endif
+endif
+
+#ifeq ($(CONFIG_RTK_IGMP),y)
+#APPS+= rtk_igmp
+#endif
+
+ifeq ($(CONFIG_RTK_OMCI_V1),y)
+ifeq ($(CONFIG_KERNEL_2_6_30),y)
+	ifeq ($(CONFIG_LUNA_DUAL_LINUX),y)
+		OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR_MASTER) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_2_6_30-"$$3"-"$$6}')
+	else
+		OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_2_6_30-"$$3"-"$$6}')
+	endif
+endif
+ifeq ($(CONFIG_KERNEL_3_18_x),y)
+	ifeq ($(CONFIG_LUNA_DUAL_LINUX),y)
+		ifeq ($(CONFIG_SMP),y)
+			OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR_MASTER) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_3_18-"$$3"-"$$6}')
+		else
+			OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR_MASTER) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_3_18-"$$3"-"$$6"-no-smp"}')
+		endif
+	else
+		ifeq ($(CONFIG_SMP),y)
+			OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_3_18-"$$3"-"$$6}')
+		else
+			OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_3_18-"$$3"-"$$6"-no-smp"}')
+		endif
+	endif
+endif
+ifeq ($(CONFIG_KERNEL_4_4_x),y)
+	OMCI_DIR= $(shell echo $(CONFIG_RSDK_DIR) | awk -F/ '{print $$NF}' | awk -F- '{print "omci_v1_4_4-"$$3"-"$$6}')
+endif
+#APPS+= omci_v1
+APPS+= omci_v1_r91564
+endif
+
+ifeq ($(CONFIG_RTK_IGMP),y)
+APPS+= rtk_igmp
+endif
+
+ifeq ($(CONFIG_RTK_OMCI_V2),y)
+APPS+= omci_v2
+endif
+
+APPS+= dbg_tool
+
+ifeq ($(CONFIG_RTK_OAM_V1),y)
+#APPS+= epon_oam_v1
+APPS+= oam_v1_r23068
+endif
+
+APPS+= pon_detect
+
+ifeq ($(CONFIG_SFP_APPLICATION),y)
+APPS+= sfp_app
+endif
+
+ifeq ($(CONFIG_EUROPA),m)
+APPS+= europa
+ifeq ($(CONFIG_KERNEL_2_6_30),y)
+EUROPA_DRV_DIR= drv_2_6_30
+else
+EUROPA_DRV_DIR= drv_3_18
+endif
+endif
+
+ifeq ($(CONFIG_RTK_PTP_MASTER),y)
+APPS+=ptp_master
+endif
+
+ifeq ($(CONFIG_RTK_PTP_SLAVE),y)
+APPS+=ptp_slave
+endif
+
+ifeq ($(CONFIG_RTK_TIME_SYNC),y)
+APPS+=time_sync
+endif
+
+ifeq ($(CONFIG_RTK_PON_TOD_TIME_FREQ),y)
+APPS+=pon_tod_cal_freq
+endif
+
+all:
+ifeq ($(CONFIG_RTK_OMCI_V1),y)
+	@if [ -L omci_v1 ] ; then \
+		ln -sfn $(OMCI_DIR) omci_v1; \
+	fi
+	@if [ ! -d omci_v1 ] ; then \
+		ln -sfn $(OMCI_DIR) omci_v1; \
+	fi
+endif
+ifeq ($(CONFIG_EUROPA),m)
+	@if [ ! -d europa/drv ] ; then \
+		ln -sfn $(EUROPA_DRV_DIR) europa/drv; \
+	fi
+endif
+	for dir in $(APPS) ; do $(MAKE) -C $$dir FLAGS=$(FLAGS) PON_CFLAGS="$(PON_CFLAGS)" RTK_LIB=$(RTK_LIB) all || exit 1; done
+ifeq ($(CONFIG_SDK_LUNA_G3),y)
+ifeq ($(CONFIG_ARCH_RTL8198F),y)
+	$(MAKE) -C $(SDKDIR)/src/dal/rtl8198f
+else
+	$(MAKE) -C $(SDKDIR)/src/dal/luna_g3
+endif
+endif
+ifeq ($(CONFIG_SDK_CA8279),y)
+	$(MAKE) -C $(SDKDIR)/src/dal/ca8279
+endif
+ifeq ($(CONFIG_CA_RTK_EPON_FEATURE),y)
+	$(MAKE) -C $(SDKDIR)/src/module/ca_rtk_epon_drv
+endif
+
+install:
+	for dir in $(APPS) ; do $(MAKE) -C $$dir BINDIR="../bin" RTK_LIB=$(RTK_LIB) install || exit 1; done
+ifeq ($(CONFIG_SDK_CA8279),y)
+	cp -af $(SDKDIR)/ca_rtk.etc/insdrv.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/ca_rtk.etc/runoam.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/ca_rtk.etc/runsdk.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/ca_rtk.etc/run_customized_sdk.sh $(ROMFSDIR)/etc/
+else
+	cp -af $(SDKDIR)/rtk.etc/insdrv.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/rtk.etc/runoam.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/rtk.etc/runsdk.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/rtk.etc/run_customized_sdk.sh $(ROMFSDIR)/etc/
+endif
+ifeq ($(CONFIG_LAN_SDS_FEATURE),y)
+	cp -af $(SDKDIR)/rtk.etc/runlansds.sh $(ROMFSDIR)/etc/
+endif
+ifeq ($(CONFIG_LAN_SDS1_FEATURE),y)
+	cp -af $(SDKDIR)/rtk.etc/runlansds1.sh $(ROMFSDIR)/etc/
+endif
+ifeq ($(CONFIG_RTK_FT2_MODULE),y)
+	cp -af $(SDKDIR)/rtk.etc/eqc_test.sh $(ROMFSDIR)/etc/
+	cp -af $(SDKDIR)/rtk.etc/*.sh $(ROMFSDIR)/etc/
+endif
+ifeq ($(CONFIG_SDK_LUNA_G3),y)
+ifeq ($(CONFIG_ARCH_RTL8198F),y)
+	$(MAKE) -C $(SDKDIR)/src/dal/rtl8198f modules_install
+else
+	$(MAKE) -C $(SDKDIR)/src/dal/luna_g3 modules_install
+endif
+endif
+ifeq ($(CONFIG_SDK_CA8279),y)
+	$(MAKE) -C $(SDKDIR)/src/dal/ca8279 modules_install
+endif
+ifeq ($(CONFIG_CA_RTK_EPON_FEATURE),y)
+	$(MAKE) -C $(SDKDIR)/src/module/ca_rtk_epon_drv modules_install
+endif
+
+clean:
+ifeq ($(CONFIG_RTK_OMCI_V1),y)
+	@if [ -L omci_v1 ] ; then \
+		unlink omci_v1 ; \
+	fi
+endif
+ifeq ($(CONFIG_EUROPA),m)
+	@if [ -L europa/drv ] ; then \
+		unlink europa/drv ; \
+	fi
+endif
+	for dir in $(APPS) ; do $(MAKE) -C $$dir clean; done
+ifeq ($(CONFIG_SDK_LUNA_G3),y)
+ifeq ($(CONFIG_ARCH_RTL8198F),y)
+	$(MAKE) -C $(SDKDIR)/src/dal/rtl8198f clean
+else
+	$(MAKE) -C $(SDKDIR)/src/dal/luna_g3 clean
+endif
+endif
+ifeq ($(CONFIG_SDK_CA8279),y)
+	$(MAKE) -C $(SDKDIR)/src/dal/ca8279 clean
+endif
+ifeq ($(CONFIG_CA_RTK_EPON_FEATURE),y)
+	$(MAKE) -C $(SDKDIR)/src/module/ca_rtk_epon_drv clean
+endif

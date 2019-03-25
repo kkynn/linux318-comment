@@ -1,0 +1,22 @@
+#
+# Realtek Semiconductor Corp.
+#
+# 9601D/03D Platform Kernel Configuration
+# MIPS_IAUP
+
+if RTL9601D
+	source "arch/mips/960Bd/config_rlx5281.in"
+endif
+
+if RTL9603D
+	source "arch/mips/960Bd/config_mipsiaup.in"
+endif
+
+menu "9601D/03D Platform Configuration"
+	comment "9601D/03D-only options start here"
+
+	config ARCH_CACHE_L2C
+		bool "Enable L2 Cache"
+
+	comment "9601D/03D-only options end here"
+endmenu

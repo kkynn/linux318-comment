@@ -1,0 +1,320 @@
+#
+# Realtek device configuration
+#
+
+config NET_VENDOR_REALTEK
+	bool "Realtek devices"
+	default y
+	---help---
+	  If you have a network (Ethernet) card belonging to this class, say Y
+	  and read the Ethernet-HOWTO, available from
+	  <http://www.tldp.org/docs.html#howto>.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Realtek devices. If you say Y, you will be asked for
+	  your specific card in the following questions.
+
+if NET_VENDOR_REALTEK
+
+config ATP
+	tristate "AT-LAN-TEC/RealTek pocket adapter support"
+	depends on PARPORT && X86
+	select CRC32
+	---help---
+	  This is a network (Ethernet) device which attaches to your parallel
+	  port. Read <file:drivers/net/ethernet/realtek/atp.c> as well as the
+	  Ethernet-HOWTO, available from <http://www.tldp.org/docs.html#howto>,
+	  if you want to use this.  If you intend to use this driver, you
+	  should have said N to the "Parallel printer support", because the two
+	  drivers don't like each other.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called atp.
+
+config 8139CP
+	tristate "RealTek RTL-8139 C+ PCI Fast Ethernet Adapter support"
+	depends on PCI
+	select CRC32
+	select MII
+	---help---
+	  This is a driver for the Fast Ethernet PCI network cards based on
+	  the RTL8139C+ chips. If you have one of those, say Y and read
+	  the Ethernet-HOWTO, available from
+	  <http://www.tldp.org/docs.html#howto>.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called 8139cp.  This is recommended.
+
+config 8139TOO
+	tristate "RealTek RTL-8129/8130/8139 PCI Fast Ethernet Adapter support"
+	depends on PCI
+	select CRC32
+	select MII
+	---help---
+	  This is a driver for the Fast Ethernet PCI network cards based on
+	  the RTL 8129/8130/8139 chips. If you have one of those, say Y and
+	  read the Ethernet-HOWTO <http://www.tldp.org/docs.html#howto>.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called 8139too.  This is recommended.
+
+config 8139TOO_PIO
+	bool "Use PIO instead of MMIO"
+	default y
+	depends on 8139TOO
+	---help---
+	  This instructs the driver to use programmed I/O ports (PIO) instead
+	  of PCI shared memory (MMIO).  This can possibly solve some problems
+	  in case your mainboard has memory consistency issues.  If unsure,
+	  say N.
+
+config 8139TOO_TUNE_TWISTER
+	bool "Support for uncommon RTL-8139 rev. K (automatic channel equalization)"
+	depends on 8139TOO
+	---help---
+	  This implements a function which might come in handy in case you
+	  are using low quality on long cabling. It is required for RealTek
+	  RTL-8139 revision K boards, and totally unused otherwise.  It tries
+	  to match the transceiver to the cable characteristics. This is
+	  experimental since hardly documented by the manufacturer.
+	  If unsure, say Y.
+
+config 8139TOO_8129
+	bool "Support for older RTL-8129/8130 boards"
+	depends on 8139TOO
+	---help---
+	  This enables support for the older and uncommon RTL-8129 and
+	  RTL-8130 chips, which support MII via an external transceiver,
+	  instead of an internal one.  Disabling this option will save some
+	  memory by making the code size smaller.  If unsure, say Y.
+
+config 8139_OLD_RX_RESET
+	bool "Use older RX-reset method"
+	depends on 8139TOO
+	---help---
+	  The 8139too driver was recently updated to contain a more rapid
+	  reset sequence, in the face of severe receive errors.  This "new"
+	  RX-reset method should be adequate for all boards.  But if you
+	  experience problems, you can enable this option to restore the
+	  old RX-reset behavior.  If unsure, say N.
+
+config R8169
+	tristate "Realtek 8169 gigabit ethernet support"
+	depends on PCI
+	select FW_LOADER
+	select CRC32
+	select MII
+	---help---
+	  Say Y here if you have a Realtek 8169 PCI Gigabit Ethernet adapter.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called r8169.  This is recommended.
+	  
+config R8168
+	tristate "Realtek 8168 gigabit ethernet support"
+	depends on PCI
+	select FW_LOADER
+	select CRC32
+	select MII
+	---help---
+	  Say Y here if you have a Realtek 8168 PCI Gigabit Ethernet adapter.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called r8168.  This is recommended.	  
+
+config RTL8672_BRIDGE_FASTPATH
+        bool "Bridge Fast Path"
+        default n
+
+config RTL8686NIC
+        tristate "Realtek RTL8686 NIC Ethernet support"
+        select CRC32
+        select MII
+        help
+          Say Y if your machine has this type of Ethernet network card.
+
+choice
+        prompt "Chip series selec"
+        depends on RTL8686NIC
+        default RTL9600_SERIES
+
+config RTL9600_SERIES
+        bool "Realtek RTL9600 series support "
+
+config RTL9601B_SERIES
+        bool "Realtek RTL9601B series support "
+        select SFU
+
+config RTL9602C_SERIES
+        bool "Realtek RTL9602C series support "
+
+config RTL9607C_SERIES
+        bool "Realtek RTL9607C series support "
+
+endchoice
+
+config GMAC1_USABLE
+	bool "Enable GMAC1"
+	depends on RTL9607C_SERIES
+
+config GMAC2_USABLE
+	bool "Enable GMAC2"
+	depends on RTL9607C_SERIES	
+
+config SFU
+        bool "SFU mode support "
+
+config RTL8686_TEST
+        bool "Realtek RTL8686 NIC Ethernet Test support"
+        depends on RTL8686NIC
+        help
+          Say Y if your machine has this type of Ethernet network card.
+
+config DESC_IN_SRAM
+        bool "put descriptor ring to SRAM"
+        depends on RTL8686NIC
+
+config REALTEK_HW_LSO
+        tristate "Realtek RTL8686 NIC Hardware LSO support (EXPERIMENTAL)"
+        depends on RTL8686NIC
+
+config DUALBAND_CONCURRENT
+        bool "GMAC Dual Band Concurrent"
+        depends on RTL8686NIC
+        help
+          Say Y if you want to enable dual band concurrent with CPU0 & CPU1
+
+config DEFAULT_TO_SLAVE_GMAC_VID
+        int "the 1Q-Based VLAN ID which receives by Slave GMAC."
+        depends on DUALBAND_CONCURRENT
+        default 4011
+
+config DEFAULT_TO_SLAVE_GMAC_PRI
+        int "the VLAN priority of packet which receives by Slave GMAC."
+        depends on DUALBAND_CONCURRENT
+        default 7
+
+config DEFAULT_MASTER_IPC_MAC_ADDRESS
+        string "The default Master IPC mac address"
+        depends on DUALBAND_CONCURRENT
+        default "00:11:33:55:77:BB"
+
+config DEFAULT_SLAVE_IPC_MAC_ADDRESS
+        string "The default Slave IPC mac address"
+        depends on DUALBAND_CONCURRENT
+        default "00:11:33:55:77:CC"
+
+config RTL865X_ETH_PRIV_SKB
+	bool "Private Allocate Skbuff for RTL9600 Series Chip"
+
+
+#
+# Apollo Switch Driver configuration
+#
+menuconfig RTL8686_SWITCH
+        default y if UML
+        depends on RTL8686NIC
+        bool "Apollo switch driver support"
+        ---help---
+          You'll have to say Y if your machine contains a switch device that
+          you want to use.
+
+# All the following symbols are dependent on RTL8686_SWITCH - do not repeat
+# that for each of the symbols.
+if RTL8686_SWITCH
+source "drivers/net/ethernet/realtek/rtl86900/sdk/Kconfig"
+source "drivers/net/ethernet/realtek/rtl86900/tr142/Kconfig"
+endif # RTL8686_SWITCH
+
+config ETHWAN
+       bool "ETHWAN"
+           select RE8306_USE_CPUTAG if RTL8672NIC
+           select RE830X_API if RTL8672NIC
+           select RTL8672_ETHSKB_CONTROL_POOL if RTL8672NIC
+       depends on EXT_SWITCH || RTL_8676HWNAT || RTL8686NIC
+       help
+          ETH_WAN setting
+choice
+        prompt "ETHWAN selection"
+        depends on RTL9607C
+        default ETHWAN_USE_SWITCH
+
+	config ETHWAN_USE_SWITCH
+        bool "ETHWAN uses switch "
+
+	config ETHWAN_USE_USB_SGMII
+        bool "ETHWAN uses USB SGMII "
+        select LAN_SDS_FEATURE
+
+	config ETHWAN_USE_PCIE1_SGMII
+        bool "ETHWAN uses PCIE1 SGMII "
+        select LAN_SDS1_FEATURE
+endchoice
+
+config RTL_MULTI_LAN_DEV
+        bool "Multi lan device"
+        default y if RTL_8676HWNAT
+        default n if RTL8686NIC
+        depends on (RTL_819X || RTL_8676HWNAT || RTL8686NIC)
+        help
+                support multi lan device
+config RTL_MULTI_ETH_WAN
+        bool "Multi WAN support"
+        default y
+        select RTL_MULTI_WAN
+#        depends on ETHWAN
+        help
+                support multi wan device and smux function(for luna)
+config RTL_MULTI_WAN
+        bool
+
+config RTL_IGMP_SNOOPING
+        bool "RTL_IGMP_SNOOPING"
+        default y
+        depends on !RTL_HW_PURE_SWITCH
+config RTL_IGMP_PROXY
+        bool
+        default y
+        depends on !RTL_HW_PURE_SWITCH
+config RTL_MLD_SNOOPING
+        bool "RTL_MLD_SNOOPING"
+        default n
+        depends on IPV6 && RTL_IGMP_SNOOPING
+
+
+choice
+        prompt "Realtek HWNAT selection"
+        default HWNAT_RG
+
+config HWNAT_RG
+        bool "Realtek romeDriver"
+	select RTK_L34_ENABLE
+	---help---
+          If unsure, say Y.
+
+config HWNAT_FLEETCONNTRACK
+	depends on RTL9607C_SERIES
+        bool "Realtek Fleet Conntrack Driver"
+	select RTK_L34_FLEETCONNTRACK_ENABLE
+	---help---
+          Cache the forwarding decision decided by Linux kernel.
+
+config HWNAT_NONE
+	bool "Disable"
+	---help---
+	  Disable HWNAT.
+endchoice
+
+if HWNAT_RG
+menuconfig RTK_L34_ENABLE
+        bool "HWNAT romeDriver"
+	source "drivers/net/ethernet/realtek/rtl86900/romeDriver/Kconfig"
+endif
+if HWNAT_FLEETCONNTRACK
+menuconfig RTK_L34_FLEETCONNTRACK_ENABLE
+        bool "HWNAT Fleet Conntrack Driver"
+	source "drivers/net/ethernet/realtek/rtl86900/FleetConntrackDriver/Kconfig"
+endif
+
+endif # NET_VENDOR_REALTEK

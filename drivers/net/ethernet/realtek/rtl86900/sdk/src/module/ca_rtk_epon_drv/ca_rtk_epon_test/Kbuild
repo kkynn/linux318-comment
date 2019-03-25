@@ -1,0 +1,9 @@
+include $(APOLLODIR)/Compiler_Flag
+
+ccflags-y := -I$(SDKDIR)/include \
+             -I$(SDKDIR)/system/include \
+             -I$(SDKDIR)/src/module/ca_rtk_epon_drv \
+             $(PON_CFLAGS) -DCONFIG_SDK_KERNEL_LINUX
+
+obj-m += ca-rtk-epon-test.o
+ca-rtk-epon-test-objs := ca_rtk_epon_test.o

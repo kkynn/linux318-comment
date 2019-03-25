@@ -1,0 +1,85 @@
+#
+# Realtek Semiconductor Corp.
+#
+# Tony Wu (tonywu@realtek.com)
+# Dec. 7, 2009
+#
+
+
+config ARCH_PLATFORM
+	string
+	default "Apollopro"
+
+config ARCH_CPU_HAS_FPU
+        bool
+        default n
+
+config ARCH_CACHE_WBC
+	bool
+	default n
+
+config ARCH_CEVT_EXT
+	bool
+	default y
+
+config CPU_HAS_L2C
+        bool
+        default y
+
+config SOC_CPU_MIPSIA
+	bool
+	default y
+
+config SOC_CPU_EB	
+	bool
+	default y
+
+config SOC_ENABLE_IRQ_VI
+	bool
+	default y
+	
+
+config SOC_ENABLE_PCI
+	bool
+	default n
+	
+config SOC_ENABLE_USB
+	bool
+	default n
+
+config SOC_ENABLE_SMP
+	bool
+	default n
+
+config SOC_ENABLE_IOCU
+	bool
+	default n
+
+config SOC_ENABLE_FPU
+	bool
+	default n
+
+config SOC_ENABLE_EMU
+	bool
+	default n
+	
+config SOC_ENABLE_DSP
+	bool
+	default n
+
+config SOC_ENABLE_WATCH
+	bool
+	default y
+
+config SOC_ENABLE_OF
+	bool
+	default n
+
+config SOC_ENABLE_L2C
+	bool
+	default y
+
+config SOC_ENABLE_SPRAM
+	bool
+	default n
+	

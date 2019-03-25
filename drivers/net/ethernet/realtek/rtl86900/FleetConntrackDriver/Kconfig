@@ -1,0 +1,84 @@
+if RTK_L34_FLEETCONNTRACK_ENABLE
+
+#
+# Fleet Conntrack Driver configuration
+#
+
+choice
+    prompt "Realtek Platform Selection"
+	default RTK_L34_XPON_PLATFORM
+config RTK_L34_XPON_PLATFORM
+	bool "Realtek L34 xPON platform"
+config RTK_L34_XDSL_PLATFORM
+	bool "Realtek L34 xDSL platform"
+config RTK_L34_G3_PLATFORM
+	bool "Realtek L34 for CA G3"
+endchoice #Realtek platform selection
+
+if RTK_L34_XPON_PLATFORM
+choice
+    prompt "xPON Chip series selection"
+	default FC_RTL9600_SERIES if RTL9600_SERIES
+	default FC_RTL9602C_SERIES if RTL9602C_SERIES
+	default FC_RTL9607C_SERIES if RTL9607C_SERIES
+
+config FC_RTL9600_SERIES
+	bool "FC RTL9600 series support "
+	select RG_RTL9600_SERIES
+
+config FC_RTL9602C_SERIES
+	bool "FC RTL9602C series support "
+	select RG_RTL9602C_SERIES
+
+config FC_RTL9607C_SERIES
+	bool "FC RTL9607C series support "
+	select RG_RTL9607C_SERIES
+endchoice
+endif
+
+if RTL9607C_SERIES
+
+choice
+    prompt "Realtek RG FLOW Mode Selection"
+        default RTK_L34_FLOWBASED_DYN_MODE
+config RTK_L34_FLOWBASED_DYN_MODE
+	bool "Support dynamic switch between 4K/8K/16K/32K Mode"
+endchoice # Realtek RG FLOW Mode Selection
+
+endif # RTL9607C_SERIES
+
+if RTK_L34_G3_PLATFORM
+choice
+    prompt "CA G3 Chip series selection"
+        default FC_CAG3_SERIES
+config FC_CAG3_SERIES
+	bool "FC for CA G3"
+config FC_RTL8198F_SERIES
+	bool "FC for RTL8198F"
+endchoice
+
+config RG_G3_SERIES_DEVELOPMENT
+        bool "Development phase for RTK wrapper"
+        default n
+
+endif # RTK_L34_G3_PLATFORM
+
+config RTK_L34_FC_KERNEL_MODULE
+	tristate "FC driver kernel module"
+	default y
+	help
+	   To compile FC driver as build-in or module 
+		   
+config RTK_L34_SHORTCUT
+	bool "Realtek L34 shortcut"
+	default y
+
+config RTK_L34_CANDIDATE_FLOW
+	bool "Realtek L34 candidate pool for flow acceleration"
+	default y
+
+config RG_WLAN_HWNAT_ACCELERATION
+	bool "Realtek RG Master CPU WLAN HWNAT acceleration"
+	default y
+
+endif #endif RTK_L34_FLEETCONNTRACK_ENABLE

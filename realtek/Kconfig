@@ -1,0 +1,14 @@
+menu "Realtek Modules"
+	
+config RTK_NETLOG
+    bool "NetLogger"
+   	depends on SERIAL_8250=y
+	default y if !ARCH_LUNA_SLAVE
+
+config  RTK_KERNEL_OMD
+    bool "Support RTK Kernel OMD Func"
+
+config RTK_HS_UART
+    bool "Support RTK high speed UART"
+
+endmenu

@@ -1,0 +1,138 @@
+/*
+ * Copyright (C) 2014 Realtek Semiconductor Corp.
+ * All Rights Reserved.
+ *
+ * This program is the proprietary software of Realtek Semiconductor
+ * Corporation and/or its licensors, and only be used, duplicated,
+ * modified or distributed under the authorized license from Realtek.
+ *
+ * ANY USE OF THE SOFTWARE OTHER THAN AS AUTHORIZED UNDER
+ * THIS LICENSE OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ * Purpose : Definition of ME handler: BBF TR-069 management server (340)
+ *
+ * Feature : The file includes the following modules and sub-modules
+ *           (1) ME handler: BBF TR-069 management server (340)
+ */
+
+#include "app_basic.h"
+#include "feature_mgmt.h"
+
+MIB_TABLE_INFO_T 					gMibTR069ManageServerTableInfo;
+MIB_ATTR_INFO_T  					gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ATTR_NUM];
+MIB_TABLE_TR069MANAGESERVER_T 		gMibTR069ManageServerDefRow;
+MIB_TABLE_OPER_T 					gMibTR069ManageServerOper;
+
+
+GOS_ERROR_CODE TR069ManageServerDrvCfg(
+	void* pOldRow, void* pNewRow, MIB_OPERA_TYPE  operationType, MIB_ATTRS_SET attrSet, UINT32 pri)
+{
+    MIB_TABLE_TR069MANAGESERVER_T   *pMibTR069;
+    MIB_TABLE_TR069MANAGESERVER_T   *pOldMibTR069;
+
+	OMCI_LOG(OMCI_LOG_LEVEL_DBG,"%s: process end\n",__FUNCTION__);
+
+	pMibTR069 = (MIB_TABLE_TR069MANAGESERVER_T*)pNewRow;
+	pOldMibTR069 = (MIB_TABLE_TR069MANAGESERVER_T*)pOldRow;
+
+    switch (operationType)
+    {
+        case MIB_SET:
+
+            if ((MIB_IsInAttrSet(&attrSet, MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX) &&
+				pMibTR069->AdminState != pOldMibTR069->AdminState) ||
+				(MIB_IsInAttrSet(&attrSet, MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX) &&
+				pMibTR069->AssociateTag != pOldMibTR069->AssociateTag))
+            {
+                BOOL                         unlock = TRUE;
+                MIB_TABLE_IP_HOST_CFG_DATA_T *pIpHost = NULL;
+                if (GOS_OK == omci_check_iphost_relation_by_service(IF_SERVICE_TR69, &pIpHost, &unlock) && TRUE == unlock)
+                    omci_setup_mgmt_interface(OP_SET_IF, IF_CHANNEL_MODE_IPOE, IF_SERVICE_TR69, pIpHost, &unlock);
+            }
+
+			if (MIB_IsInAttrSet(&attrSet, MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX))
+				omci_setup_mgmt_acs_info(pMibTR069);
+
+			break;
+        default:
+            break;
+    }
+
+	OMCI_LOG(OMCI_LOG_LEVEL_DBG,"%s: process end\n",__FUNCTION__);
+	return GOS_OK;
+}
+
+GOS_ERROR_CODE mibTable_init(MIB_TABLE_INDEX tableId)
+{
+    gMibTR069ManageServerTableInfo.Name = "TR069ManageServer";
+    gMibTR069ManageServerTableInfo.ShortName = "TR069MS";
+    gMibTR069ManageServerTableInfo.Desc = "TR-069 management server";
+    gMibTR069ManageServerTableInfo.ClassId = (UINT32)(OMCI_ME_CLASS_BBF_TR069_MGMT_SERVER);
+    gMibTR069ManageServerTableInfo.InitType = (UINT32)(OMCI_ME_INIT_TYPE_ONU);
+    gMibTR069ManageServerTableInfo.StdType = (UINT32)(OMCI_ME_TYPE_STANDARD);
+    gMibTR069ManageServerTableInfo.ActionType = (UINT32)(OMCI_ME_ACTION_SET | OMCI_ME_ACTION_GET);
+    gMibTR069ManageServerTableInfo.pAttributes = &(gMibTR069ManageServerAttrInfo[0]);
+	gMibTR069ManageServerTableInfo.attrNum = MIB_TABLE_TR069MANAGESERVER_ATTR_NUM;
+	gMibTR069ManageServerTableInfo.entrySize = sizeof(MIB_TABLE_TR069MANAGESERVER_T);
+	gMibTR069ManageServerTableInfo.pDefaultRow = &gMibTR069ManageServerDefRow;
+
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].Name = "EntityID";
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].Desc = "Entity ID";
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].DataType = MIB_ATTR_TYPE_UINT16;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].Len = 2;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].IsIndex = TRUE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].MibSave = TRUE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].OutStyle = MIB_ATTR_OUT_HEX;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].OltAcc = OMCI_ME_ATTR_ACCESS_READ;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].AvcFlag = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ENTITYID_INDEX-MIB_TABLE_FIRST_INDEX].OptionType = OMCI_ME_ATTR_TYPE_MANDATORY;
+
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].Name = "AdminState";
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].Desc = "Administrative state";
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].DataType = MIB_ATTR_TYPE_UINT8;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].Len = 1;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].IsIndex = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].MibSave = TRUE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].OutStyle = MIB_ATTR_OUT_DEC;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].OltAcc = OMCI_ME_ATTR_ACCESS_READ | OMCI_ME_ATTR_ACCESS_WRITE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].AvcFlag = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ADMINSTATE_INDEX-MIB_TABLE_FIRST_INDEX].OptionType = OMCI_ME_ATTR_TYPE_MANDATORY;
+
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].Name = "AcsAddress";
+	gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].Desc = "ACS network address";
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].DataType = MIB_ATTR_TYPE_UINT16;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].Len = 2;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].IsIndex = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].MibSave = TRUE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].OutStyle = MIB_ATTR_OUT_HEX;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].OltAcc = OMCI_ME_ATTR_ACCESS_READ | OMCI_ME_ATTR_ACCESS_WRITE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].AvcFlag = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ACSADDRESS_INDEX-MIB_TABLE_FIRST_INDEX].OptionType = OMCI_ME_ATTR_TYPE_MANDATORY;
+
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].Name = "AssociateTag";
+	gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].Desc = "Associated tag";
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].DataType = MIB_ATTR_TYPE_UINT16;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].Len = 2;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].IsIndex = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].MibSave = TRUE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].OutStyle = MIB_ATTR_OUT_HEX;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].OltAcc = OMCI_ME_ATTR_ACCESS_READ | OMCI_ME_ATTR_ACCESS_WRITE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].AvcFlag = FALSE;
+    gMibTR069ManageServerAttrInfo[MIB_TABLE_TR069MANAGESERVER_ASSOCIATETAG_INDEX-MIB_TABLE_FIRST_INDEX].OptionType = OMCI_ME_ATTR_TYPE_MANDATORY;
+
+	memset(&(gMibTR069ManageServerDefRow.EntityID), 0x00, sizeof(gMibTR069ManageServerDefRow.EntityID));
+	gMibTR069ManageServerDefRow.AdminState = OMCI_ME_ATTR_ADMIN_STATE_LOCK;
+	gMibTR069ManageServerDefRow.AcsAddress = 0xffff;
+	gMibTR069ManageServerDefRow.AssociateTag = 0xffff;
+
+    memset(&gMibTR069ManageServerOper, 0x0, sizeof(MIB_TABLE_OPER_T));
+	gMibTR069ManageServerOper.meOperDrvCfg = TR069ManageServerDrvCfg;
+	gMibTR069ManageServerOper.meOperConnCheck = NULL;
+	gMibTR069ManageServerOper.meOperDump = omci_mib_oper_dump_default_handler;
+	gMibTR069ManageServerOper.meOperConnCfg = NULL;
+
+	MIB_TABLE_TR069MANAGESERVER_INDEX = tableId;
+	MIB_InfoRegister(tableId,&gMibTR069ManageServerTableInfo,&gMibTR069ManageServerOper);
+
+    return GOS_OK;
+}

@@ -1,0 +1,497 @@
+#
+# Realtek Semiconductor Corp.
+#
+
+# 
+# Soc System Config
+#  Common SoC option for CPU RLX5281(RLX5181) or MIPS-InterAptiv(1004K or 34K)
+#
+menu "System Configuration"
+
+#
+# System Config
+#
+config RTL8672
+	bool 
+	default y
+
+choice
+	prompt "Realtek SoC"
+	default RTL8685
+
+config RTL9601D
+	bool "RTL9601D"
+	select ARCH_CPU_RLX5281
+	select ARCH_CPU_SYNC
+	select SYS_SUPPORTS_HIGHMEM
+
+config RTL9603D
+	bool "RTL9603D"
+	select SYS_SUPPORTS_HIGHMEM
+
+config RTL8686
+	bool "RTL8686"
+	select ARCH_CPU_RLX5281
+	select ARCH_CPU_SYNC
+#	select GENERIC_GPIO
+#	select ARCH_WANT_OPTIONAL_GPIOLIB
+#	select GPIOLIB
+#	select OPENWRT_SDK	
+#	select ARCH_BUS_USB
+#	select USB_ARCH_HAS_EHCI
+#	select USB_ARCH_HAS_OHCI	
+#	select USB_ARCH_HAS_XHCI	
+	select SYS_SUPPORTS_HIGHMEM
+
+config RTL9607C
+	bool "RTL9607C"
+	select CPU_MIPSR2_IRQ_VI
+	select SYS_SUPPORTS_HIGHMEM
+	select CSRC_R4K
+	select WEAK_REORDERING_BEYOND_LLSC
+#	select GENERIC_GPIO
+	select ARCH_WANT_OPTIONAL_GPIOLIB
+	select GPIOLIB
+#	select OPENWRT_SDK	
+#	select ARCH_BUS_USB
+#	select USB_ARCH_HAS_EHCI
+#	select USB_ARCH_HAS_OHCI	
+#	select USB_ARCH_HAS_XHCI	
+	select HW_HAS_PCI
+
+endchoice
+
+config SYSTEM_CAPABILITY
+	prompt "System Capability"
+	string
+	default "0;4;2;2;1;1"
+	help
+	System Capability, format FE;GE;VOIP;USB;2.4G;5G
+
+config UNI_CAPABILITY
+	prompt "UNI port Capability"
+	string
+	help
+		UNI port Capability, format is [2/1/0];[2/1/0];[2/1/0];[2/1/0];[2/1/0]
+		GE port is 2, FE port is 1, None is 0
+		The port number should follow CHIP spec. ex. 9607C has 5 uni ports.
+
+
+## kernel option flag for openWrt SDK
+config OPENWRT_SDK
+	def_bool n
+
+config WRT_BARRIER_BREAKER
+	def_bool n
+
+#config RTL_819X
+#        def_bool n
+#
+#config RTL_8196C
+#        def_bool n
+#
+#config RTL_8196D
+#        def_bool n
+#
+#config RTL8196C_REVISION_B
+#        def_bool n 
+
+config RTL_NETDEV_NO_PRIV
+	bool "Support reference priv through netdev_priv"
+	default n
+
+choice
+	prompt "Timer Source"
+
+#config ARCH_CEVT_RLX
+#        bool "Use RLX internal timer"
+#        depends on ARCH_CPU_TIMER
+
+config ARCH_CEVT_EXT
+	bool "Use EXT external timer"
+
+endchoice
+
+config KERNEL_STACK_SIZE_ORDER
+	int "Kenel Stack Size Order Configuration"
+	default "2"
+	help
+	With Page Size 4K
+	1 for 8K kenel stack size
+	2 for 16K kernel stack size
+	3 for 32K kernel stack size
+	etc...
+		  
+choice
+	prompt "Flash Size"	
+	default 4M_FLASH
+
+config 2M_FLASH
+	bool "2M"
+
+config 4M_FLASH
+	bool "4M"
+
+config	8M_FLASH
+	bool "8M"
+
+config	16M_FLASH
+	bool "16M"
+	
+config	32M_FLASH
+	bool "32M"
+
+endchoice
+
+config FLASH_SIZE
+	hex
+	default "200000" if 2M_FLASH
+	default "400000" if 4M_FLASH
+	default "800000" if 8M_FLASH
+	default "1000000" if 16M_FLASH
+	default "2000000" if 32M_FLASH
+	default "400000"		  
+
+config DEV_xDSL
+    bool "xDsl device"
+
+config VDSL
+    bool "Support VDSL"
+    depends on DEV_xDSL && (RTL8685 || RTL9607C)
+	
+config EOC
+    bool "Support for DSL EOC channel"
+    depends on DEV_xDSL
+
+config E8B
+	bool "Support for CTC E8B requirement"	
+
+config YUEME
+	bool "Support for CTC YueMe requirement"
+	depends on E8B
+
+config CTC_AWIFI_KERNEL_JITUAN
+    bool "Jituan kernel feature"
+	depends on YUEME
+
+config CMCC
+	bool "Support for CMCC requirement"	
+
+config CU
+	bool "Support for CU requirement"	
+
+config YUEME_DPI
+	bool "Support for CTC YueMe DPI requirement"
+	depends on YUEME
+
+config CMCC_GBM
+        bool "Support for CMCC Jembench test requirement"
+	depends on CMCC || CU
+
+config CMCC_DMIPS
+        bool "CMCC  test requirement"
+	depends on CMCC || CU
+
+config CMCC_JAVA_THREAD_CPU_LIMIT
+        bool "CMCC Java Thread/Process CPU USAGE LIMIT"
+        depends on (CMCC || CU) && CGROUP_SCHED
+        select  CFS_BANDWIDTH
+        default n
+        help
+             Avoid JAVA process occupy too many CPU resource.
+
+config CMCC_OSGI_TOTAL_CPU_USAGE
+        int "CMCC OSGi Total CPU USAGE (1~100)%"
+        depends on (CMCC || CU) && CMCC_JAVA_THREAD_CPU_LIMIT
+        range 1 100
+        default 90
+        help
+             The Totol CPU Uage for OSGi Threads.
+
+
+config CMCC_JAVA_THREAD_CPU_USAGE
+        int "CMCC Java Thread Thread CPU USAGE (1~100)%"
+        depends on (CMCC || CU) && CMCC_JAVA_THREAD_CPU_LIMIT
+        range 1 100
+        default 30
+        help
+             The CPU Uage for 1 Java Bundle thread group.
+
+config CMCC_OSGI_MEM_USAGE
+        int "CMCC OSGi Java Total MEM USAGE (MB)"
+        depends on (CMCC || CU) && CMCC_JAVA_THREAD_CPU_LIMIT
+        range 32 256
+        default 200
+        help
+             The total Mem usage for OSGi instance.
+
+config APOLLO_MP_TEST
+        bool "Support for Mass Production Test, led, push button, etc."
+
+config FACTORY_MODE
+	bool "Support for xPON Mass Production Test, etc."
+	
+choice
+	prompt "LED Style"        
+	default GPIO_LED_TR068
+
+config GPIO_LED_TR068
+	bool "TR068"
+endchoice
+
+config RTL8672_SW_USB_LED
+	tristate "Support Software USB LED"
+	depends on USB
+
+config SW_USB_LED0
+	bool "Software USB LED 0"
+	depends on RTL8672_SW_USB_LED
+
+config SW_USB_LED1
+        bool "Software USB LED 1"
+        depends on RTL8672_SW_USB_LED
+
+config  CT_PUSHKEYEVENT
+    bool "Support push key event"
+	
+config  WPS_LED
+	bool "Support WPS LED"
+	depends on WIFI_SIMPLE_CONFIG
+	depends on RTL8672
+
+config ONE_WPS_LED
+        bool "Only one WPS LED"
+        depends on WPS_LED	
+
+config ONE_WIFI_WPS_LED
+	bool "Only one LED for WPS and WIFI"
+	depends on WPS_LED
+
+config WIFI_LED_USE_SOC_GPIO
+        bool "Support using SoC gpio for WIFI LED"
+        depends on RTL8192CD && RTL8672
+
+choice
+        prompt "Hardware Board"
+        depends on RTL8685
+        default RTL8685_BOARD_001
+
+config RTL8685_BOARD_001
+        bool "Board001 - default"
+
+config RTL8685_BOARD_002
+	bool "Board002 - 256pin or 292pin board"
+
+endchoice
+	
+choice
+	prompt "Hardware Board for RTL8676 family"	
+	depends on RTL8676 || RTL8676S
+	default BOARD_007 if RTL8676
+	default BOARD_013 if RTL8676S
+	default BOARD_000
+	
+config BOARD_000
+	bool "Board000 - default"
+
+config BOARD_001
+	bool "Board001 - combo - 1P"
+	
+config BOARD_002
+	bool "Board002 - E8B - 4P Wifi"
+
+config BOARD_003
+	bool "Board003 - 4P Wifi"
+
+config BOARD_003v6
+        bool "Board003v6 - 4P Wifi"
+
+config BOARD_004
+	bool "Board004 - BGA 356 IAD board"
+
+config BOARD_005
+        bool "Board005 - RLE0315 4P Wifi"
+
+config BOARD_006
+        bool "Board006 - RTL8672 RL6166 IAD"
+
+config BOARD_007
+        bool "Board007 - RTL8676 4P Wifi"
+
+config BOARD_008
+        bool "Board008 - RTL8676 IAD"
+
+config BOARD_009
+        bool "Board009 - RTL8676PN IAD 176pin"
+
+config BOARD_010
+	bool "Board010 - RTL8676P IAD 164pin"
+
+config BOARD_011
+        bool "Board011"
+
+config BOARD_012
+	bool "Board012"
+
+config BOARD_013
+	bool "Board013 - 8676S"
+
+endchoice
+
+	
+choice
+        prompt "CPU0 UART selection"
+        depends on RTL8672
+        default USE_UART1 if (BOARD_006 || RTL8676)
+        default USE_UART0
+
+config USE_UART0
+        bool "Use UART0"
+
+config USE_UART1
+        bool "Use UART1"
+endchoice
+
+# ---------------------------------------------------------------------
+# CPU1 UART Selection
+#----------------------------------------------------------------------
+
+config CPU1_DSP_SELECTION
+	bool
+
+choice
+	prompt "CPU1 UART Selection"
+	default CPU1_DIS_UART
+	help
+		CPU1 UART Selection
+config CPU1_UART0
+	depends on USE_UART1
+        bool "Use UART0"
+        help
+                CPU1 Use UART0
+config CPU1_UART1
+	depends on USE_UART0
+	bool "Use UART1"
+	help
+                CPU1 Use UART1
+config CPU1_UART2
+        bool "Use UART2"
+        help
+                CPU1 Using UART2
+config CPU1_UART3
+	bool "Use UART3"
+	help
+		CPU1 Use UART3
+config CPU1_DIS_UART
+        bool "Disable"
+        help
+		CPU1 Disable UART
+endchoice
+
+config CPU1_UART_BASE_ADDR
+	hex
+	default 0xB8002000 if CPU1_UART0
+	default 0xB8002100 if CPU1_UART1
+	default 0xB8002200 if CPU1_UART2
+	default 0xB8002300 if CPU1_UART3
+	default 0          if CPU1_DIS_UART
+
+choice
+	prompt "Root Image Policy"
+	default SINGLE_IMAGE
+	
+config	SINGLE_IMAGE
+	bool "Single Image"
+	---help---
+	  One normal image in a specified partition is available, kernel
+	  mounts root according to the command line. Another small image is
+	  located in another partition which will be loaded if this normal
+	  image is failed. It's bootcode's responsibility to select a correct
+	  image to boot.
+
+config	DOUBLE_IMAGE
+	bool "Double Image"
+	---help---
+	Two identical normal images each in its specified partition are
+	available, kernel mounts root according to the flash parameter
+	(writed by bootcode). Bootcode will boot another image if the selected
+	image is failed.
+	
+endchoice
+
+choice	
+	prompt "IMEM Size"	
+	depends on ARCH_CPU_RLX5281 || ARCH_CPU_RLX4281
+	default	IMEM_4K
+
+config	IMEM_4K
+	bool "4K"
+
+config	IMEM_16K
+	bool "16K"
+
+config	IMEM_32K
+	bool "32K"
+
+config	IMEM_64K
+	bool "64K"
+
+endchoice
+
+choice	
+	prompt "IMEM1 Size"
+	depends on ARCH_CPU_RLX5281 || ARCH_CPU_RLX4281
+	default	IMEM1_32K
+
+config	IMEM1_4K
+	bool "4K"
+
+config	IMEM1_16K
+	bool "16K"
+
+config	IMEM1_32K
+	bool "32K"
+
+config	IMEM1_64K
+	bool "64K"
+
+endchoice
+
+config IMEM_SIZE
+#	depends on ARCH_CPU_RLX5281 || ARCH_CPU_RLX4281
+	hex
+	default "10000" if IMEM_64K
+	default "8000" if IMEM_32K
+	default "4000" if IMEM_16K
+	default "1000"
+	
+config IMEM1_SIZE
+#	depends on ARCH_CPU_RLX5281 || ARCH_CPU_RLX4281
+	hex
+	default "10000" if IMEM1_64K
+	default "8000" if IMEM1_32K
+	default "4000" if IMEM1_16K
+	default "1000"
+
+config SKB_FRAG_DISABLED
+	bool "Disable SKB frag"
+	default y
+	---help---
+	  The enhancement of netdev_alloc_skb(__netdev_alloc_frag) consumes too many o3 pages
+	  and creates MM pressure on low (ie. 32M) system.
+
+config USB_9607C_EHCI2
+	bool "Enable 2nd EHCI controller on 9607C" 
+	depends on RTL9607C
+	default n
+	---help---
+	  Enables 2nd EHCI(EHCI2) controller on RTL9607C platform. Only one of XHCI/EHCI2 can be used.
+	  This option overwrites XHCI.
+	
+config RTK_USB_TEST
+	bool "Enable USB Test" 
+	default y
+	---help---
+	  Create entries under /sys/bus/usb/devices/usbX for USB test (i.e. test packet)
+	
+endmenu

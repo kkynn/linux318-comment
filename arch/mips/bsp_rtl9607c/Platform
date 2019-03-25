@@ -1,0 +1,9 @@
+##
+# Realtek Soc
+#
+#platform-$(CONFIG_APOLLOPRO)	+= bsp_rtl9607c/
+platform-y	+= bsp_rtl9607c/
+platform-y	+= rtl9607c/
+cflags-$(CONFIG_APOLLOPRO)		+= -I$(srctree)/arch/mips/include/asm/mach-generic -DAPOLLOPRO
+load-$(CONFIG_APOLLOPRO)		= 0x80000000
+

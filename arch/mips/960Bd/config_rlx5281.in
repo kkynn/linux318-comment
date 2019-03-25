@@ -1,0 +1,85 @@
+config ARCH_CPU_TYPE
+	string
+	default "rlx"
+
+config ARCH_CPU_RLX
+	bool
+	default y
+
+config ARCH_CPU_RLX4281
+	bool
+	
+config ARCH_CPU_RLX5281
+	bool
+
+config ARCH_CPU_EB
+	bool
+	default y
+
+config ARCH_CPU_EL
+	bool
+	default n
+
+config ARCH_CPU_RADIAX
+	bool
+	default n
+
+config ARCH_CPU_SLEEP
+	bool
+	default n
+
+config ARCH_CPU_ULS
+	bool
+	default y
+
+config ARCH_CPU_TLS
+	bool
+	default y
+
+config ARCH_CPU_LLSC
+	bool
+	default y
+
+config ARCH_CPU_SYNC
+	bool
+	default n
+
+config ARCH_CPU_WMPU
+	bool
+	default y
+
+config ARCH_CPU_TIMER
+	bool
+	default n
+
+config ARCH_CACHE_WBC
+	bool
+	default y
+
+config ARCH_CACHE_L2C
+	bool
+	default n
+
+config ARCH_CACHE_WBIC
+	bool
+	default y
+
+config ARCH_IRQ_CPU
+	bool
+	default y
+
+config ARCH_IRQ_VEC
+	bool
+	default y
+
+config ARCH_BUS_USB
+	bool
+	default n
+
+config ARCH_BUS_PCI
+	bool
+	default n
+
+config ARCH_BUS_PCI_MSI
+	bool
+	default n
