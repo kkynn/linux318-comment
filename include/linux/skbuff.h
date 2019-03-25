@@ -182,14 +182,17 @@ struct nf_bridge_info {
 	unsigned long		data[32 / sizeof(unsigned long)];
 };
 #endif
+/*
+	每个sk_buff必须迅速找到整个双向链表的头部，在链表的开端增加一个sk_buff_head
 
+ */
 struct sk_buff_head {
 	/* These two members must be first. */
 	struct sk_buff	*next;
 	struct sk_buff	*prev;
 
-	__u32		qlen;
-	spinlock_t	lock;
+	__u32		qlen; /* 表中元素的数目 */
+	spinlock_t	lock; /* 防止对表的并发访问 */
 };
 
 struct sk_buff;
@@ -540,12 +543,19 @@ struct sk_buff {
 	struct sk_buff		*next;
 	struct sk_buff		*prev;
 
+	/* 传输或者接收的时间戳 	*/
 	union {
-		ktime_t		tstamp;
+		ktime_t		tstamp; 
 		struct skb_mstamp skb_mstamp;
 	};
 
+/*
+	指向拥有这个缓冲区的套接字， 本地发送和本地接手的时候初始化, 如果本地只做转发,则这个字段为NULL
+ */
 	struct sock		*sk;
+/*
+	记录接收或者传输的设备
+ */
 	struct net_device	*dev;
 
 	/*
@@ -554,9 +564,13 @@ struct sk_buff {
 	 * want to keep them across layers you have to do a skb_clone()
 	 * first. This is owned by whoever has the skb queued ATM.
 	 */
+	/*
+		控制缓冲区，用于存储私有信息，每层协议自己维护并使用，
+        并且只在本层有有效
+	 */
 	char			cb[48] __aligned(8);
 
-
+/* 路由缓存，输入或者输出报文都要查询到目的路由缓存项，才能确定流向 */
 	unsigned long		_skb_refdst;
 	void			(*destructor)(struct sk_buff *skb);
 #ifdef CONFIG_XFRM
@@ -568,18 +582,24 @@ struct sk_buff {
 #if IS_ENABLED(CONFIG_BRIDGE_NETFILTER)
 	struct nf_bridge_info	*nf_bridge;
 #endif
+/* 
+        缓冲区的数据区块大小，该长度包括主缓冲区(head指针指向)的数据
+        以及一些片段(fragment)的数据，当缓冲区从一个网络分层移动到下一个
+        网络分层时，该值会发生变化，因为在协议栈中向上层移动时报头会被丢弃
+        向下层移动时报头会添加，len也会把协议报头算在内，与"数据预留和对齐"操作
+*/
 	unsigned int		len,
-				data_len;
-	__u16			mac_len,
-				hdr_len;
+				data_len; /*片段(fragment)的数据*/
+	__u16			mac_len, /* mac报头的长度 */
+				hdr_len;/* 克隆skb时可写报文头部长度 */
 
 	/* Following fields are _not_ copied in __copy_skb_header()
 	 * Note that queue_mapping is here mostly to fill a hole.
 	 */
 	kmemcheck_bitfield_begin(flags1);
 	__u16			queue_mapping;
-	__u8			cloned:1,
-				nohdr:1,
+	__u8			cloned:1,  /* 表示该skb是另外一个skb的克隆 */
+				nohdr:1, /* payload是否被单独引用，不存在协议首部，如果被引用，则不能修改协议首部，也不能通过skb->data来访问协议首部 */
 				fclone:2,
 				peeked:1,
 				head_frag:1,
@@ -603,12 +623,30 @@ struct sk_buff {
 #define PKT_TYPE_OFFSET()	offsetof(struct sk_buff, __pkt_type_offset)
 
 	__u8			__pkt_type_offset[0];
+ /*
+        此字段根据l2的目的地址进行划分
+        PACKET_HOST-mac地址与接收设备mac地址相等，说明是发给该主机的
+        PACKET_BROADCAST-mac地址是接收设备的广播地址
+        PACKET_MULTICAST-mac地址接收改设备注册的多播地址之一
+        PACKET_OTHERHOST-mac地址不属于接收设备的地址，启用转发则转发，否则丢弃
+        PACKET_OUTGOING-数据包将被发出，用到这个标记的功能包括decnet，或者为每个网络tab都复制一份发出包的函数
+        PACKET_LOOPBACK-数据包发往回环设备，有此标识，处理回环设备时，可以跳过一些真实设备所需的操作
+        PACKET_USER-发送到用户空间，netlink使用
+        PACKET_KERNEL-发送到内核空间，netlink使用
+        PACKET_FASTROUTE-未使用    
+*/
 	__u8			pkt_type:3;
 	__u8			pfmemalloc:1;
 	__u8			ignore_df:1;
 	__u8			nfctinfo:3;
 
 	__u8			nf_trace:1;
+/*
+        CHECKSUM_NONE-硬件不支持，完全由软件执行校验和
+        CHECKSUM_PARTIAL-由硬件来执行校验和
+        CHECKSUM_UNNECESSARY-没必要执行校验和
+        CHECKSUM_COMPLETE-已完成执行校验和
+*/
 	__u8			ip_summed:2;
 	__u8			ooo_okay:1;
 	__u8			l4_hash:1;
@@ -640,12 +678,19 @@ struct sk_buff {
 #endif
 
 	union {
+		 /* 校验和，必须包含csum_start和csum_offset */
 		__wsum		csum;
 		struct {
-			__u16	csum_start;
-			__u16	csum_offset;
+			__u16	csum_start;  /* 校验开始位置，相对于header */
+			__u16	csum_offset;  /* 校验和存储位置，相对于csum_start */
 		};
 	};
+/* 
+        正在被传输的数据包QoS等级
+        数据包由本地产生，套接字会定义优先级的值
+        数据包在被转发，则在调用ip_forward函数时，会根据
+        ip头本身的ToS字段定义该值
+*/
 	__u32			priority;
 	int			skb_iif;
 	__u32			hash;
@@ -663,19 +708,25 @@ struct sk_buff {
 		__u32		reserved_tailroom;
 	};
 
+/* 封装的协议 */
 	union {
 		__be16		inner_protocol;
 		__u8		inner_ipproto;
 	};
 
-	__u16			inner_transport_header;
-	__u16			inner_network_header;
-	__u16			inner_mac_header;
+	__u16			inner_transport_header; /* 封装的传输层头部相对于head的偏移 */
+	__u16			inner_network_header;  /* 封装的网络层头部相对于head的偏移 */
+	__u16			inner_mac_header; /* 封装的链路层头部相对于head的偏移 */
 
-	__be16			protocol;
-	__u16			transport_header;
-	__u16			network_header;
-	__u16			mac_header;
+/* 
+        l3层协议值
+        如ETH_P_IP-ipv4报文
+        ETH_P_ARP-arp报文等
+*/
+	__be16			protocol; 
+	__u16			transport_header; /* 传输层头部相对于head的偏移 */
+	__u16			network_header;  /* 网络层头部相对于head的偏移 */
+	__u16			mac_header; /* 链路层头部相对于head的偏移 */
 
 	/* ===Realtek private fields start===*/
 	/* note that if you add new field, please add clone same member variable at skbuff.c (__copy_skb_header)*/
@@ -694,11 +745,23 @@ struct sk_buff {
 	/* public: */	
 
 	/* These elements must be at the end, see alloc_skb() for details.  */
-	sk_buff_data_t		tail;
-	sk_buff_data_t		end;
-	unsigned char		*head,
-				*data;
+	sk_buff_data_t		tail; /* 实际数据的尾部 */
+	sk_buff_data_t		end; /* 缓冲区的尾部 */
+	unsigned char		*head, /* 缓冲区的头部 */
+				*data; /* 实际数据的头部 */
+/*
+        缓冲区的总大小，包括skb本身和实际数据len大小，alloc_skb函数将
+        该字段设置为len+sizeof(sk_buff)
+        每当len值更新，该值也要对应更新
+*/
 	unsigned int		truesize;
+/* 
+        引用计数，在使用该skb缓冲区的实例个数，当引用计数为0时，skb才能被释放
+        skb_get()获取操作中会增加引用计数，kfree_skb释放过程中检查引用计数，
+        引用计数为0时，才真正释放skb
+        该计数器只计算sk_buff结构引用计数，缓冲区包含的实际数据由
+        skb_shared_info->dataref字段记录
+*/
 	atomic_t		users;
 };
 
